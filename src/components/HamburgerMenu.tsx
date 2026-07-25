@@ -7,9 +7,10 @@ import { extractTitles } from '@/lib/titles';
 interface HamburgerMenuProps {
     watchHistory: string[] | null;
     onHistoryUpdate: (newHistory: string[] | null) => void;
+    onSetupHistory?: () => void;
 }
 
-export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: HamburgerMenuProps) {
+export default function HamburgerMenu({ watchHistory, onHistoryUpdate, onSetupHistory }: HamburgerMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [showSingleTitleInput, setShowSingleTitleInput] = useState(false);
     const [showHistoryView, setShowHistoryView] = useState(false);
@@ -144,6 +145,15 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
                     <div className="p-2 space-y-1">
                         {!showSingleTitleInput ? (
                             <>
+                                {onSetupHistory && (!watchHistory || watchHistory.length === 0) && (
+                                    <button
+                                        onClick={() => { setIsOpen(false); onSetupHistory(); }}
+                                        className="w-full text-left px-4 py-3 text-sm font-medium text-indigo-300 hover:bg-zinc-800 rounded-lg transition flex items-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Set up Netflix history
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={loading}
