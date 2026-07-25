@@ -65,30 +65,30 @@ export default function HistoryUploader({ onProfileCreated, onSkip }: { onProfil
     };
 
     return (
-        <div className="bg-zinc-900/50 backdrop-blur-md rounded-2xl p-6 border border-zinc-800 shadow-xl transition-all">
-            <h3 className="text-xl font-semibold text-white mb-2">One-time setup</h3>
-            <div className="text-zinc-400 text-sm mb-6">
+        <div className="bg-[#141414] rounded-2xl p-6 border border-[#262626] shadow-xl transition-all">
+            <h3 className="text-2xl font-bold text-[#f0f0f0] mb-2">One-time setup</h3>
+            <div className="text-[#a0a0a0] text-sm mb-6">
                 <p>We&apos;ll match actors to shows YOU&apos;VE already watched — but first we need your Netflix viewing history.</p>
             </div>
 
             {/* Profile name */}
             <div className="mb-5">
-                <label className="block text-xs text-zinc-500 mb-1.5 px-1">Your name</label>
+                <label className="block text-xs text-[#808080] mb-1.5 px-1">Your name</label>
                 <input
                     type="text"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="e.g. Brian"
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-zinc-600"
+                    className="w-full bg-[#1c1c1c] border border-[#262626] text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-[#4a4a4a]"
                 />
             </div>
 
-            <ol className="text-zinc-400 text-sm mb-4 list-decimal list-inside space-y-1.5">
+            <ol className="text-[#a0a0a0] text-sm mb-4 list-decimal list-inside space-y-3">
                 <li>Open netflix.com in your browser</li>
                 <li>Account &rarr; Profile &amp; Parental Controls &rarr; Viewing Activity</li>
                 <li>
                     Tap &quot;Download all&quot; at the bottom of the page
-                    <p className="text-zinc-500 text-xs mt-0.5 ml-4">Note: Netflix may send you an email with the file instead of an instant download.</p>
+                    <p className="text-[#808080] text-xs mt-0.5 ml-4">Note: Netflix may send you an email with the file instead of an instant download.</p>
                 </li>
             </ol>
 
@@ -104,7 +104,7 @@ export default function HistoryUploader({ onProfileCreated, onSkip }: { onProfil
                 <button
                     type="button"
                     onClick={handleUploadClick}
-                    className="cursor-pointer flex items-center justify-center gap-2 w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors shadow-lg"
+                    className="cursor-pointer flex items-center justify-center gap-2 w-full py-4 px-4 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold rounded-2xl transition-colors shadow-lg"
                 >
                     {loading ? (
                         <span className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export default function HistoryUploader({ onProfileCreated, onSkip }: { onProfil
                     <button
                         type="button"
                         onClick={onSkip}
-                        className="mt-4 w-full text-center text-xs text-zinc-600 hover:text-zinc-400 transition"
+                        className="mt-4 w-full text-center text-xs text-[#808080] hover:text-zinc-400 transition"
                     >
                         Skip for now — I&apos;ll add history later
                     </button>

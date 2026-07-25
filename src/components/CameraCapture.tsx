@@ -316,15 +316,15 @@ export default function CameraCapture({
                         {/* Upload row — CHANGE 5: promoted to primary; CHANGE 11: focus-visible ring */}
                         <button
                             onClick={() => libraryInputRef.current?.click()}
-                            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-all duration-150"
+                            className="w-full flex items-center gap-4 px-5 py-4 bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626] rounded-2xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-all duration-150"
                         >
-                            <div className="w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                            <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.12)] border border-[rgba(79,70,229,0.20)] flex items-center justify-center flex-shrink-0">
+                                <svg className="w-6 h-6 text-[#818cf8]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                                 </svg>
                             </div>
                             <div className="flex-1 text-left">
-                                <p className="text-white font-semibold text-base">Upload Photo</p>
+                                <p className="text-white font-semibold text-base">Upload Screenshot</p>
                                 {/* CHANGE 5: Updated description to emphasise screenshots */}
                                 <p className="text-zinc-500 text-sm">From your library or screenshots</p>
                             </div>
@@ -333,18 +333,18 @@ export default function CameraCapture({
 
                         {/* OR divider */}
                         <div className="flex items-center gap-3 py-3 px-2">
-                            <div className="flex-1 h-px bg-zinc-800" />
-                            <span className="text-zinc-600 text-xs font-medium tracking-widest">OR</span>
-                            <div className="flex-1 h-px bg-zinc-800" />
+                            <div className="flex-1 h-px bg-[#262626]" />
+                            <span className="text-[#808080] text-xs font-medium tracking-widest">OR</span>
+                            <div className="flex-1 h-px bg-[#262626]" />
                         </div>
 
                         {/* Camera row — CHANGE 5: demoted to secondary; CHANGE 11: focus-visible ring */}
                         <button
                             onClick={() => cameraInputRef.current?.click()}
-                            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-all duration-150"
+                            className="w-full flex items-center gap-4 px-5 py-4 bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626] rounded-2xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-all duration-150"
                         >
-                            <div className="w-12 h-12 rounded-xl bg-indigo-600/25 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                            <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.12)] border border-[rgba(79,70,229,0.20)] flex items-center justify-center flex-shrink-0">
+                                <svg className="w-6 h-6 text-[#818cf8]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
                                 </svg>
@@ -358,8 +358,8 @@ export default function CameraCapture({
                     </div>
 
                     {/* CHANGE 10: tip text contrast — was text-[11px] text-zinc-700 */}
-                    <p className="text-center text-xs text-zinc-500 mt-6">
-                        <span className="text-zinc-500">Tip:</span> Screenshot your screen first, then tap Upload for best results.
+                    <p className="text-center text-xs text-[#808080] mt-6">
+                        <span className="text-[#808080]">Tip:</span> Screenshot your screen first, then tap Upload for best results.
                     </p>
                 </div>
             )}
@@ -372,14 +372,14 @@ export default function CameraCapture({
             {/* Preview strip — CHANGE 4: subtitle driven by loadingState */}
             {previewUrl && (
                 <div className="w-full flex items-center gap-3 px-1">
-                    <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-zinc-700 flex-shrink-0">
+                    <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-[#262626] flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={previewUrl} alt="Preview" className="object-cover w-full h-full" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs text-zinc-500 mb-0.5">Your capture</p>
+                        <p className="text-xs text-[#808080] mb-0.5">Your capture</p>
                         {/* CHANGE 4: Was hardcoded "Analyzing scene…" */}
-                        <p className="text-sm text-zinc-300 font-medium truncate">
+                        <p className="text-sm text-[#a0a0a0] font-medium truncate">
                             {loadingState === 'recognizing' ? 'Identifying actor…'
                                 : loadingState === 'cross-referencing' ? 'Checking your history…'
                                 : result ? 'Match found'
@@ -395,8 +395,8 @@ export default function CameraCapture({
 
             {/* CHANGE 3: Loading spinner with cancel button */}
             {loadingState !== 'idle' && (
-                <div className="w-full p-6 bg-zinc-900/80 rounded-2xl flex flex-col items-center justify-center border border-zinc-800">
-                    <svg className="animate-spin h-10 w-10 text-indigo-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="w-full p-6 bg-[#141414] rounded-2xl flex flex-col items-center justify-center border border-[#262626]">
+                    <svg className="animate-spin h-10 w-10 text-[#4f46e5] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -470,7 +470,7 @@ export default function CameraCapture({
                                 </div>
                             </button>
                             {/* CHANGE 10: was text-zinc-600 */}
-                            <button onClick={resetAll} className="text-xs text-zinc-500 hover:text-zinc-400 transition text-center mt-1">
+                            <button onClick={resetAll} className="text-xs text-[#808080] hover:text-zinc-400 transition text-center mt-1">
                                 Start over
                             </button>
                         </div>
@@ -523,7 +523,7 @@ export default function CameraCapture({
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-sm text-zinc-300 font-medium">Cast of <span className="text-white">{castMediaTitle}</span></p>
                                 {/* CHANGE 10: was text-zinc-600 */}
-                                <button onClick={() => { setCastResults(null); setHelperShowName(''); }} className="text-xs text-zinc-500 hover:text-zinc-400 transition">Change show</button>
+                                <button onClick={() => { setCastResults(null); setHelperShowName(''); }} className="text-xs text-[#808080] hover:text-zinc-400 transition">Change show</button>
                             </div>
                             {/* CHANGE 8: Removed max-h-[50vh] overflow-y-auto — let page scroll handle it */}
                             <div className="grid grid-cols-3 gap-2">
@@ -552,20 +552,20 @@ export default function CameraCapture({
             )}
 
             {result && (
-                <div className="w-full bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="p-6 bg-gradient-to-b from-indigo-900/40 to-transparent border-b border-zinc-800/50">
-                        <p className="text-zinc-400 text-sm uppercase tracking-wider mb-3">Actor Identified!</p>
+                <div className="w-full bg-[#141414] rounded-2xl overflow-hidden border border-[#262626] shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="py-6 pr-6 pl-5 border-l-4 border-l-[#4f46e5] border-b border-[#262626]">
+                        <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#818cf8] mb-3">Actor Identified!</p>
                         <div className="flex items-center gap-4">
                             {result.actorProfilePath && (
                                 /* eslint-disable-next-line @next/next/no-img-element */
                                 <img
                                     src={result.actorProfilePath}
                                     alt={result.actorName}
-                                    className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500/60 shadow-lg flex-shrink-0"
+                                    className="w-16 h-16 rounded-full object-cover border-2 border-[rgba(79,70,229,0.40)] shadow-lg flex-shrink-0"
                                 />
                             )}
                             <div className="flex-1 min-w-0">
-                                <h2 className="text-3xl font-bold text-white leading-tight">{result.actorName}</h2>
+                                <h2 className="text-2xl font-bold text-[#f0f0f0] leading-tight">{result.actorName}</h2>
                                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                                     {result.imdbUrl && (
                                         <a
@@ -631,10 +631,10 @@ export default function CameraCapture({
                         {/* "You've seen them in" — ALL exact watch-history matches, no cap */}
                         {result.matches.length > 0 && (
                             <div className="mb-5">
-                                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-3">You&apos;ve seen them in:</h3>
+                                <h3 className="text-[11px] font-semibold text-[#808080] uppercase tracking-[0.12em] mb-3">You&apos;ve seen them in:</h3>
                                 <div className="space-y-3">
                                     {result.matches.map((item, idx) => (
-                                        <div key={`match-${item.id}-${idx}`} className="flex gap-4 p-3 bg-zinc-800/40 rounded-xl border border-zinc-800/50 hover:bg-zinc-800 transition">
+                                        <div key={`match-${item.id}-${idx}`} className="flex gap-4 p-3 bg-[rgba(255,255,255,0.03)] rounded-xl border border-[#262626] hover:bg-[#1a1a1a] transition">
                                             {item.posterPath ? (
                                                 /* eslint-disable-next-line @next/next/no-img-element */
                                                 <img src={item.posterPath} alt={item.title} className="w-16 h-24 object-cover rounded-lg shadow" />
@@ -642,8 +642,8 @@ export default function CameraCapture({
                                                 <div className="w-16 h-24 bg-zinc-800 rounded-lg flex items-center justify-center text-xs text-zinc-500 text-center p-1">No Image</div>
                                             )}
                                             <div className="flex-1 py-1">
-                                                <h4 className="font-semibold text-white text-lg leading-tight mb-1">{item.title}</h4>
-                                                <p className="text-zinc-400 text-sm mb-1">{item.releaseYear}</p>
+                                                <h4 className="font-semibold text-[#f0f0f0] text-base leading-tight mb-1">{item.title}</h4>
+                                                <p className="text-[#808080] text-sm mb-1">{item.releaseYear}</p>
                                                 {item.character && (
                                                     <p className="text-sm text-indigo-300">as {item.character}</p>
                                                 )}
@@ -657,7 +657,7 @@ export default function CameraCapture({
                         {/* Possible fuzzy matches from history */}
                         {result.fuzzyMatches && result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).length > 0 && (
                             <div className="mb-5">
-                                <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-1">Possible matches:</h3>
+                                <h3 className="text-[11px] font-semibold text-[#808080] uppercase tracking-[0.12em] mb-1">Possible matches:</h3>
                                 <p className="text-zinc-500 text-xs mb-3">These aren&apos;t exact matches but may be related to titles in your history</p>
                                 <div className="space-y-2">
                                     {result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).map((item, idx) => (
@@ -678,7 +678,7 @@ export default function CameraCapture({
                                                 </div>
                                             </div>
                                             {item.matchedFrom && (
-                                                <p className="text-amber-400/70 text-xs mt-2 px-1">Suggested because you watched &ldquo;{item.matchedFrom}&rdquo;</p>
+                                                <p className="text-[#fbbf24] text-xs mt-2 px-1">Suggested because you watched &ldquo;{item.matchedFrom}&rdquo;</p>
                                             )}
                                             <button
                                                 onClick={() => setDismissedFuzzy(prev => new Set([...prev, item.title]))}
@@ -694,35 +694,38 @@ export default function CameraCapture({
 
                         {/* Actor not in watch history — only shown when history is loaded but actor isn't in it */}
                         {result.matches.length === 0 && (result.fuzzyMatches?.length ?? 0) === 0 && watchHistory.length > 0 && (
-                            <div className="py-3 text-center mb-5">
-                                <p className="text-zinc-500 text-sm">Not in your watch history</p>
+                            <div className="mb-5">
+                                <div className="flex items-center gap-2 py-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#818cf8] flex-shrink-0 mt-0.5" />
+                                    <p className="text-[#a0a0a0] text-sm">New to you — not in your watch history</p>
+                                </div>
                             </div>
                         )}
 
                         {/* Discover — top-rated titles the user hasn't seen, always shown inline */}
                         {discoverTitles.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-zinc-800">
-                                <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+                                <h4 className="text-[11px] font-semibold text-[#808080] uppercase tracking-[0.12em] mb-3">
                                     Also known for
                                 </h4>
                                 <div className="space-y-2">
                                     {discoverTitles.map((title, i) => (
-                                        <div key={i} className="flex items-center gap-3 py-1">
+                                        <div key={i} className="flex items-center gap-3 py-2">
                                             {title.poster_path ? (
                                                 /* eslint-disable-next-line @next/next/no-img-element */
                                                 <img
                                                     src={`https://image.tmdb.org/t/p/w92${title.poster_path}`}
                                                     alt={title.title}
-                                                    className="w-10 h-14 object-cover rounded flex-shrink-0 bg-zinc-800"
+                                                    className="w-12 h-[72px] object-cover rounded-md flex-shrink-0 bg-zinc-800"
                                                 />
                                             ) : (
-                                                <div className="w-10 h-14 rounded flex-shrink-0 bg-zinc-800 flex items-center justify-center">
+                                                <div className="w-12 h-[72px] rounded-md flex-shrink-0 bg-zinc-800 flex items-center justify-center">
                                                     <span className="text-zinc-600 text-xs">?</span>
                                                 </div>
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-white text-sm font-medium leading-snug truncate">{title.title}</p>
-                                                <p className="text-zinc-500 text-xs mt-0.5">
+                                                <p className="text-[15px] font-medium text-[#f0f0f0] leading-snug truncate">{title.title}</p>
+                                                <p className="text-xs text-[#808080] mt-0.5">
                                                     {title.releaseYear}
                                                     {title.mediaType === 'tv' ? ' · TV' : ''}
                                                     {title.vote_average && title.vote_average > 0
@@ -770,7 +773,7 @@ export default function CameraCapture({
                         {/* CHANGE 9: Secondary reset — also accessible from preview strip "New scan" at top */}
                         <button
                             onClick={resetAll}
-                            className="w-full mt-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg transition-transform active:scale-95"
+                            className="w-full mt-6 py-4 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold rounded-2xl shadow-lg transition-transform active:scale-95"
                         >
                             Scan Another Face
                         </button>

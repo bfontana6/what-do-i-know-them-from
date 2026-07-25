@@ -3,6 +3,26 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Design system tokens — Solid Signal Dark */
+  --bg-base: #0a0a0a;
+  --bg-card: #141414;
+  --bg-card-hover: #1a1a1a;
+  --bg-card-border: #262626;
+  --bg-elevated: #1c1c1c;
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #808080;
+  --text-disabled: #4a4a4a;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-subtle: rgba(79,70,229,0.12);
+  --accent-border: rgba(79,70,229,0.20);
+  --accent-text: #818cf8;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --overlay: rgba(0,0,0,0.80);
 }
 
 @theme inline {

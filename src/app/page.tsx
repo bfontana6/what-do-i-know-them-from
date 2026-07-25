@@ -168,7 +168,7 @@ export default function Home() {
       <main
         className="flex-1 flex flex-col max-w-lg w-full mx-auto px-4 min-h-screen"
         style={{
-          background: 'radial-gradient(ellipse at 15% 5%, rgba(79,22,130,0.45) 0%, transparent 55%), radial-gradient(ellipse at 85% 95%, rgba(6,78,59,0.35) 0%, transparent 50%)',
+          background: 'radial-gradient(ellipse 100% 40% at 50% 0%, rgba(79,70,229,0.06) 0%, transparent 100%)',
         }}
       >
         <div className="flex-1 flex flex-col">
@@ -181,8 +181,20 @@ export default function Home() {
               </div>
             )}
             <div className="flex items-center justify-between">
-              {profileName && profileId ? (
-                <p className="text-zinc-500 text-sm">Hi, <span className="text-zinc-300 font-medium">{profileName}</span></p>
+              {profileName ? (
+                <div className="flex items-center gap-2 bg-[#141414] border border-[#262626] rounded-full pl-1 pr-3 py-1">
+                  <div className="w-6 h-6 rounded-full bg-[rgba(79,70,229,0.12)] border border-[rgba(79,70,229,0.20)] flex items-center justify-center flex-shrink-0">
+                    <span className="text-[#818cf8] text-[10px] font-bold uppercase leading-none">
+                      {profileName[0]}
+                    </span>
+                  </div>
+                  <span className="text-[#a0a0a0] text-xs leading-none">
+                    {profileName}
+                    {watchHistory && watchHistory.length > 0 && (
+                      <span className="text-[#4a4a4a] ml-1">· {watchHistory.length}</span>
+                    )}
+                  </span>
+                </div>
               ) : <div />}
               <HamburgerMenu
                 watchHistory={watchHistory || []}
