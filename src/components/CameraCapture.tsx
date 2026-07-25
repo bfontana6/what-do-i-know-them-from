@@ -30,7 +30,10 @@ interface ActorResult {
         character: string;
         mediaType: string;
         posterPath: string | null;
+        poster_path?: string | null;
         releaseYear: string;
+        vote_average?: number;
+        popularity?: number;
     }>;
 }
 
@@ -281,6 +284,16 @@ export default function CameraCapture({
             setLoadingState('idle');
         }
     };
+
+    // Compute discover titles: top-rated filmography items the user hasn't already seen.
+    const seenTitlesLower = new Set([
+        ...(result?.matches || []).map((m) => m.title.toLowerCase()),
+        ...(result?.fuzzyMatches || []).map((m) => m.title.toLowerCase()),
+    ]);
+
+    const discoverTitles = (result?.topFilmography || [])
+        .filter((t) => !seenTitlesLower.has(t.title.toLowerCase()))
+        .slice(0, 5);
 
     return (
         <div className="flex-1 flex flex-col w-full gap-4">
@@ -615,169 +628,142 @@ export default function CameraCapture({
                             </div>
                         )}
 
-                        {/* CHANGE 8: Removed max-h-[55vh] overflow-y-auto from results — let page scroll handle it */}
-                        {(result.matches.length > 0 || (result.fuzzyMatches && result.fuzzyMatches.length > 0)) ? (
-                            <div className="space-y-5">
-                                {result.matches.length > 0 && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-3">You&apos;ve seen them in:</h3>
-                                        <div className="space-y-3">
-                                            {result.matches.map((item, idx) => (
-                                                <div key={`match-${item.id}-${idx}`} className="flex gap-4 p-3 bg-zinc-800/40 rounded-xl border border-zinc-800/50 hover:bg-zinc-800 transition">
-                                                    {item.posterPath ? (
-                                                        /* eslint-disable-next-line @next/next/no-img-element */
-                                                        <img src={item.posterPath} alt={item.title} className="w-16 h-24 object-cover rounded-lg shadow" />
-                                                    ) : (
-                                                        <div className="w-16 h-24 bg-zinc-800 rounded-lg flex items-center justify-center text-xs text-zinc-500 text-center p-1">No Image</div>
-                                                    )}
-                                                    <div className="flex-1 py-1">
-                                                        <h4 className="font-semibold text-white text-lg leading-tight mb-1">{item.title}</h4>
-                                                        <p className="text-zinc-400 text-sm mb-1">{item.releaseYear}</p>
-                                                        {item.character && (
-                                                            <p className="text-sm text-indigo-300">as {item.character}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
+                        {/* "You've seen them in" — ALL exact watch-history matches, no cap */}
+                        {result.matches.length > 0 && (
+                            <div className="mb-5">
+                                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-3">You&apos;ve seen them in:</h3>
+                                <div className="space-y-3">
+                                    {result.matches.map((item, idx) => (
+                                        <div key={`match-${item.id}-${idx}`} className="flex gap-4 p-3 bg-zinc-800/40 rounded-xl border border-zinc-800/50 hover:bg-zinc-800 transition">
+                                            {item.posterPath ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img src={item.posterPath} alt={item.title} className="w-16 h-24 object-cover rounded-lg shadow" />
+                                            ) : (
+                                                <div className="w-16 h-24 bg-zinc-800 rounded-lg flex items-center justify-center text-xs text-zinc-500 text-center p-1">No Image</div>
+                                            )}
+                                            <div className="flex-1 py-1">
+                                                <h4 className="font-semibold text-white text-lg leading-tight mb-1">{item.title}</h4>
+                                                <p className="text-zinc-400 text-sm mb-1">{item.releaseYear}</p>
+                                                {item.character && (
+                                                    <p className="text-sm text-indigo-300">as {item.character}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-
-                                {result.fuzzyMatches && result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).length > 0 && (
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-1">Possible matches:</h3>
-                                        {/* CHANGE 10: was text-zinc-600 */}
-                                        <p className="text-zinc-500 text-xs mb-3">These aren&apos;t exact matches but may be related to titles in your history</p>
-                                        <div className="space-y-2">
-                                            {result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).map((item, idx) => (
-                                                <div key={`fuzzy-${item.id}-${idx}`} className="p-3 bg-zinc-800/20 rounded-xl border border-zinc-800/30 transition opacity-80">
-                                                    <div className="flex gap-3">
-                                                        {item.posterPath ? (
-                                                            /* eslint-disable-next-line @next/next/no-img-element */
-                                                            <img src={item.posterPath} alt={item.title} className="w-12 h-16 object-cover rounded-md shadow opacity-70" />
-                                                        ) : (
-                                                            <div className="w-12 h-16 bg-zinc-800 rounded-md flex items-center justify-center text-xs text-zinc-600 text-center p-1">?</div>
-                                                        )}
-                                                        <div className="flex-1 py-1">
-                                                            <h4 className="font-medium text-zinc-400 text-base leading-tight mb-0.5">{item.title}</h4>
-                                                            {/* CHANGE 10: was text-zinc-600 */}
-                                                            <p className="text-zinc-500 text-sm mb-0.5">{item.releaseYear}</p>
-                                                            {item.character && (
-                                                                <p className="text-sm text-zinc-500">as {item.character}</p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    {item.matchedFrom && (
-                                                        <p className="text-amber-400/70 text-xs mt-2 px-1">Suggested because you watched &ldquo;{item.matchedFrom}&rdquo;</p>
-                                                    )}
-                                                    {/* CHANGE 12: Updated dismiss copy */}
-                                                    <button
-                                                        onClick={() => setDismissedFuzzy(prev => new Set([...prev, item.title]))}
-                                                        className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition underline underline-offset-2"
-                                                    >
-                                                        Dismiss — not relevant
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            {/* Add a title not shown */}
-                            <div className="pt-4">
-                                {!showAddCustomTitle ? (
-                                    <button
-                                        onClick={() => setShowAddCustomTitle(true)}
-                                        className="w-full flex items-center gap-2 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-dashed border-zinc-700 rounded-xl transition text-sm text-zinc-400 hover:text-white"
-                                    >
-                                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                        Add another title you&apos;ve seen them in
-                                    </button>
-                                ) : (
-                                    <form
-                                        onSubmit={(e) => { e.preventDefault(); if (customTitleValue.trim()) { addTitleToHistory(customTitleValue.trim()); setCustomTitleValue(''); setShowAddCustomTitle(false); } }}
-                                        className="flex gap-2 animate-in fade-in duration-150"
-                                    >
-                                        <input
-                                            autoFocus
-                                            type="text"
-                                            value={customTitleValue}
-                                            onChange={e => setCustomTitleValue(e.target.value)}
-                                            placeholder="e.g. Mad Men"
-                                            className="flex-1 bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-zinc-600"
-                                        />
-                                        <button type="button" onClick={() => { setShowAddCustomTitle(false); setCustomTitleValue(''); }} className="px-3 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-sm transition hover:bg-zinc-700">Cancel</button>
-                                        <button type="submit" disabled={!customTitleValue.trim()} className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-40">Add</button>
-                                    </form>
-                                )}
-                            </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-5">
-                                <p className="text-zinc-500 text-sm text-center">Not in your watch history yet. You might know them from:</p>
-
-                                {result.topFilmography && result.topFilmography.length > 0 && (
-                                    <div className="space-y-2">
-                                        {result.topFilmography.slice(0, 5).map((item, idx) => {
-                                            const added = addedTitles.has(item.title);
-                                            return (
-                                                <div key={`top-${item.id}-${idx}`} className="flex gap-3 p-3 bg-zinc-800/40 rounded-xl border border-zinc-800/50 items-center">
-                                                    {item.posterPath ? (
-                                                        /* eslint-disable-next-line @next/next/no-img-element */
-                                                        <img src={item.posterPath} alt={item.title} className="w-10 h-14 object-cover rounded-md shadow-sm flex-shrink-0" />
-                                                    ) : (
-                                                        <div className="w-10 h-14 bg-zinc-800 rounded-md flex items-center justify-center text-[10px] text-zinc-600 flex-shrink-0">?</div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0 py-0.5">
-                                                        <p className="font-medium text-white text-sm leading-tight truncate">{item.title}</p>
-                                                        <p className="text-zinc-500 text-xs mt-0.5">{item.releaseYear}</p>
-                                                        {item.character && <p className="text-xs text-zinc-400 truncate">as {item.character}</p>}
-                                                    </div>
-                                                    <button
-                                                        onClick={() => !added && addTitleToHistory(item.title)}
-                                                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition ${added ? 'bg-emerald-600/20 text-emerald-400' : 'bg-zinc-700 hover:bg-emerald-600 text-zinc-400 hover:text-white'}`}
-                                                        aria-label={added ? 'Added' : `Add ${item.title} to history`}
-                                                    >
-                                                        {added
-                                                            ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                                            : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                                        }
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
-                                {/* Add the title you're watching now */}
-                                <div className="pt-1 border-t border-zinc-800/60">
-                                    {!showAddCustomTitle ? (
-                                        <button
-                                            onClick={() => setShowAddCustomTitle(true)}
-                                            className="w-full flex items-center gap-2 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-dashed border-zinc-700 rounded-xl transition text-sm text-zinc-400 hover:text-white"
-                                        >
-                                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                            Add the title you&apos;re watching now
-                                        </button>
-                                    ) : (
-                                        <form
-                                            onSubmit={(e) => { e.preventDefault(); if (customTitleValue.trim()) { addTitleToHistory(customTitleValue.trim()); setCustomTitleValue(''); setShowAddCustomTitle(false); } }}
-                                            className="flex gap-2 animate-in fade-in duration-150"
-                                        >
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                value={customTitleValue}
-                                                onChange={e => setCustomTitleValue(e.target.value)}
-                                                placeholder="e.g. Mad Men"
-                                                className="flex-1 bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-zinc-600"
-                                            />
-                                            <button type="button" onClick={() => { setShowAddCustomTitle(false); setCustomTitleValue(''); }} className="px-3 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-sm transition hover:bg-zinc-700">Cancel</button>
-                                            <button type="submit" disabled={!customTitleValue.trim()} className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-40">Add</button>
-                                        </form>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
                         )}
+
+                        {/* Possible fuzzy matches from history */}
+                        {result.fuzzyMatches && result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).length > 0 && (
+                            <div className="mb-5">
+                                <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-1">Possible matches:</h3>
+                                <p className="text-zinc-500 text-xs mb-3">These aren&apos;t exact matches but may be related to titles in your history</p>
+                                <div className="space-y-2">
+                                    {result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).map((item, idx) => (
+                                        <div key={`fuzzy-${item.id}-${idx}`} className="p-3 bg-zinc-800/20 rounded-xl border border-zinc-800/30 transition opacity-80">
+                                            <div className="flex gap-3">
+                                                {item.posterPath ? (
+                                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                                    <img src={item.posterPath} alt={item.title} className="w-12 h-16 object-cover rounded-md shadow opacity-70" />
+                                                ) : (
+                                                    <div className="w-12 h-16 bg-zinc-800 rounded-md flex items-center justify-center text-xs text-zinc-600 text-center p-1">?</div>
+                                                )}
+                                                <div className="flex-1 py-1">
+                                                    <h4 className="font-medium text-zinc-400 text-base leading-tight mb-0.5">{item.title}</h4>
+                                                    <p className="text-zinc-500 text-sm mb-0.5">{item.releaseYear}</p>
+                                                    {item.character && (
+                                                        <p className="text-sm text-zinc-500">as {item.character}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {item.matchedFrom && (
+                                                <p className="text-amber-400/70 text-xs mt-2 px-1">Suggested because you watched &ldquo;{item.matchedFrom}&rdquo;</p>
+                                            )}
+                                            <button
+                                                onClick={() => setDismissedFuzzy(prev => new Set([...prev, item.title]))}
+                                                className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition underline underline-offset-2"
+                                            >
+                                                Dismiss — not relevant
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actor not in watch history — only shown when history is loaded but actor isn't in it */}
+                        {result.matches.length === 0 && (result.fuzzyMatches?.length ?? 0) === 0 && watchHistory.length > 0 && (
+                            <div className="py-3 text-center mb-5">
+                                <p className="text-zinc-500 text-sm">Not in your watch history</p>
+                            </div>
+                        )}
+
+                        {/* Discover — top-rated titles the user hasn't seen, always shown inline */}
+                        {discoverTitles.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-zinc-800">
+                                <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+                                    Also known for
+                                </h4>
+                                <div className="space-y-2">
+                                    {discoverTitles.map((title, i) => (
+                                        <div key={i} className="flex items-center gap-3 py-1">
+                                            {title.poster_path ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img
+                                                    src={`https://image.tmdb.org/t/p/w92${title.poster_path}`}
+                                                    alt={title.title}
+                                                    className="w-10 h-14 object-cover rounded flex-shrink-0 bg-zinc-800"
+                                                />
+                                            ) : (
+                                                <div className="w-10 h-14 rounded flex-shrink-0 bg-zinc-800 flex items-center justify-center">
+                                                    <span className="text-zinc-600 text-xs">?</span>
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-white text-sm font-medium leading-snug truncate">{title.title}</p>
+                                                <p className="text-zinc-500 text-xs mt-0.5">
+                                                    {title.releaseYear}
+                                                    {title.mediaType === 'tv' ? ' · TV' : ''}
+                                                    {title.vote_average && title.vote_average > 0
+                                                        ? ` · ★ ${title.vote_average.toFixed(1)}`
+                                                        : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Add a title to watch history */}
+                        <div className="pt-4">
+                            {!showAddCustomTitle ? (
+                                <button
+                                    onClick={() => setShowAddCustomTitle(true)}
+                                    className="w-full flex items-center gap-2 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-dashed border-zinc-700 rounded-xl transition text-sm text-zinc-400 hover:text-white"
+                                >
+                                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                    Add a title you&apos;ve seen them in
+                                </button>
+                            ) : (
+                                <form
+                                    onSubmit={(e) => { e.preventDefault(); if (customTitleValue.trim()) { addTitleToHistory(customTitleValue.trim()); setCustomTitleValue(''); setShowAddCustomTitle(false); } }}
+                                    className="flex gap-2 animate-in fade-in duration-150"
+                                >
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={customTitleValue}
+                                        onChange={e => setCustomTitleValue(e.target.value)}
+                                        placeholder="e.g. Mad Men"
+                                        className="flex-1 bg-zinc-800 border border-zinc-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-zinc-600"
+                                    />
+                                    <button type="button" onClick={() => { setShowAddCustomTitle(false); setCustomTitleValue(''); }} className="px-3 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-sm transition hover:bg-zinc-700">Cancel</button>
+                                    <button type="submit" disabled={!customTitleValue.trim()} className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-40">Add</button>
+                                </form>
+                            )}
+                        </div>
 
                         {/* CHANGE 7: Removed feedback thumbs section — was dead UI (local state, never submitted) */}
 

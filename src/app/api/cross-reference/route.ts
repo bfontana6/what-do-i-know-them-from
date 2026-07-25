@@ -119,12 +119,13 @@ export async function POST(request: Request) {
         // Keep legacy `matches` as exact-only for backwards compatibility
         const uniqueMatches = uniqueExactMatches;
 
-        // Also prepare top 5 filmography items to show if there are no/few matches, sorting by popularity
+        // Prepare top filmography items — used for the "Discover" (unseen) section on the client.
+        // Sort by vote_average desc so highest-rated work surfaces first; fall back to popularity.
         const allCredits = credits.cast || [];
         const topFilmography = allCredits
             .filter(c => c.poster_path) // only items with posters look good
-            .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-            .slice(0, 5)
+            .sort((a, b) => ((b as any).vote_average || 0) - ((a as any).vote_average || 0) || (b.popularity || 0) - (a.popularity || 0))
+            .slice(0, 12)
             .map(credit => {
                 const isMovie = (credit as any).media_type === 'movie';
                 const title = isMovie ? (credit as any).title : (credit as any).name;
@@ -136,7 +137,10 @@ export async function POST(request: Request) {
                     character: credit.character,
                     mediaType: (credit as any).media_type,
                     posterPath: `https://image.tmdb.org/t/p/w500${credit.poster_path}`,
-                    releaseYear: releaseDate ? releaseDate.split('-')[0] : 'Unknown'
+                    poster_path: credit.poster_path || null,
+                    releaseYear: releaseDate ? releaseDate.split('-')[0] : 'Unknown',
+                    vote_average: (credit as any).vote_average || 0,
+                    popularity: credit.popularity || 0,
                 };
             });
 
