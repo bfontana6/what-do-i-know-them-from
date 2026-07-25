@@ -54,8 +54,8 @@ export default function HistoryUploader({ onProfileCreated }: { onProfileCreated
                     const uniqueTitles = Array.from(new Set(newTitles));
                     await onProfileCreated(name.trim(), uniqueTitles);
                     setLoading(false);
-                } catch (err) {
-                    setError('Failed to parse the CSV file.');
+                } catch (err: any) {
+                    setError(err?.message || 'Something went wrong. Please try again.');
                     setLoading(false);
                 }
             },

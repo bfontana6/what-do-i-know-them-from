@@ -40,9 +40,7 @@ export default function Home() {
 
       setProfileId(id);
       setProfileName(profileRes.data.name);
-      if (historyRes.data && historyRes.data.length > 0) {
-        setWatchHistory(historyRes.data.map(r => r.title));
-      }
+      setWatchHistory(historyRes.data ? historyRes.data.map(r => r.title) : []);
     } catch (e) {
       console.error('Failed to load profile from Supabase', e);
     } finally {
@@ -59,8 +57,7 @@ export default function Home() {
       .single();
 
     if (profileError || !profile) {
-      console.error('Failed to create profile', profileError);
-      return;
+      throw new Error(profileError?.message || 'Failed to create profile in Supabase');
     }
 
     const newProfileId = profile.id;
@@ -133,14 +130,14 @@ export default function Home() {
     >
       <div className="flex-1 flex flex-col">
 
-        {/* Header — profile name + hamburger when history is loaded */}
+        {/* Header — profile name + hamburger when profile is loaded */}
         <header className="py-5 flex items-center justify-between min-h-[60px]">
-          {profileName && watchHistory && watchHistory.length > 0 ? (
+          {profileName && profileId ? (
             <p className="text-zinc-500 text-sm">Welcome back, <span className="text-zinc-300 font-medium">{profileName}</span></p>
           ) : <div />}
-          {watchHistory && watchHistory.length > 0 && (
+          {profileId && (
             <HamburgerMenu
-              watchHistory={watchHistory}
+              watchHistory={watchHistory || []}
               onHistoryUpdate={handleHistoryUpdate}
             />
           )}
@@ -148,13 +145,13 @@ export default function Home() {
 
         {/* Dynamic Content — fills remaining height */}
         <div className="flex-1 flex flex-col pb-6">
-          {!watchHistory || watchHistory.length === 0 ? (
+          {!profileId ? (
             <div className="flex-1 flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4 duration-700">
               <HistoryUploader onProfileCreated={handleProfileCreated} />
             </div>
           ) : (
             <div className="flex-1 flex flex-col animate-in fade-in duration-500">
-              <CameraCapture watchHistory={watchHistory} onHistoryUpdate={handleHistoryUpdate} />
+              <CameraCapture watchHistory={watchHistory || []} onHistoryUpdate={handleHistoryUpdate} />
             </div>
           )}
         </div>
