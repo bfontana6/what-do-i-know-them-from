@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #f0f0f0;
 
   /* Design system tokens — Solid Signal Dark */
   --bg-base: #0a0a0a;
@@ -30,12 +30,7 @@
   --color-foreground: var(--foreground);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* App is always dark — no light mode variant */
 
 body {
   background: var(--background);

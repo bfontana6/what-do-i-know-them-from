@@ -578,42 +578,58 @@ export default function CameraCapture({
                                             IMDb
                                         </a>
                                     )}
-                                    {/* CHANGE 6: Promoted "Wrong person?" to a visible bordered button */}
                                     {!showCorrectionInput ? (
                                         <button
                                             onClick={() => setShowCorrectionInput(true)}
-                                            className="text-zinc-400 hover:text-zinc-200 text-xs transition-colors border border-zinc-700 hover:border-zinc-500 rounded-lg px-2.5 py-1"
+                                            className="text-[#808080] hover:text-[#a0a0a0] text-xs transition-colors border border-[#262626] hover:border-zinc-500 rounded-lg px-2.5 py-1"
                                         >
                                             Wrong person?
                                         </button>
                                     ) : (
-                                        <form
-                                            onSubmit={(e) => { e.preventDefault(); if (correctionName.trim()) lookupActor(correctionName.trim()); }}
-                                            className="flex items-center gap-2 mt-2 w-full"
-                                        >
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                value={correctionName}
-                                                onChange={(e) => setCorrectionName(e.target.value)}
-                                                placeholder="Enter correct actor name"
-                                                className="flex-1 bg-zinc-800 border border-zinc-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-zinc-500"
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={!correctionName.trim()}
-                                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
-                                            >
-                                                Look up
-                                            </button>
+                                        <div className="mt-3 w-full space-y-3 animate-in fade-in duration-150">
+                                            {/* Try again — re-run full recognition */}
                                             <button
                                                 type="button"
-                                                onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); }}
-                                                className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs font-medium rounded-lg transition"
+                                                onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); if (image) processImage(image); }}
+                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#1c1c1c] hover:bg-[#262626] border border-[#262626] text-[#a0a0a0] hover:text-[#f0f0f0] text-sm rounded-xl transition"
                                             >
-                                                Cancel
+                                                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                </svg>
+                                                Try recognition again
                                             </button>
-                                        </form>
+
+                                            {/* Manual name entry */}
+                                            <form
+                                                onSubmit={(e) => { e.preventDefault(); if (correctionName.trim()) { lookupActor(correctionName.trim()); setShowCorrectionInput(false); setCorrectionName(''); } }}
+                                                className="space-y-2"
+                                            >
+                                                <p className="text-[11px] text-[#808080] uppercase tracking-[0.12em]">Or enter their name</p>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={correctionName}
+                                                        onChange={(e) => setCorrectionName(e.target.value)}
+                                                        placeholder="Actor name…"
+                                                        className="flex-1 bg-[#1c1c1c] border border-[#262626] text-[#f0f0f0] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4f46e5] placeholder-[#4a4a4a]"
+                                                    />
+                                                    <button
+                                                        type="submit"
+                                                        disabled={!correctionName.trim()}
+                                                        className="px-3 py-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-medium rounded-xl transition disabled:opacity-40"
+                                                    >
+                                                        Look up
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); }}
+                                                    className="w-full py-1.5 text-[#808080] hover:text-[#a0a0a0] text-xs transition text-center"
+                                                >
+                                                    I don&apos;t know — cancel
+                                                </button>
+                                            </form>
+                                        </div>
                                     )}
                                 </div>
                             </div>
