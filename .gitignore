@@ -43,3 +43,24 @@ next-env.d.ts
 
 # claude code
 .claude/
+
+# Accenture Proprietary Content — Do Not Commit
+# Protected under LICENSE.md — Accenture proprietary and confidential.
+# These files are distributed separately; do not commit them to version control.
+# TRACE: FR-023, TASK-008, TC-065, TC-066, TC-067, TC-068
+
+.claude/agents/
+.claude/skills/
+.claude/knowledge/
+.claude/templates/
+.kiro/agents/
+.kiro/skills/
+.kiro/knowledge/
+.kiro/templates/
+GETTING-STARTED.md
+.dist/
+
+# PWA build-tool generated files (workbox / next-pwa output — not our manual sw.js)
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map

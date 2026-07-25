@@ -41,13 +41,44 @@ interface CastMember {
     profilePath: string | null;
 }
 
-export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watchHistory: string[]; onHistoryUpdate?: (h: string[]) => void }) {
+// CHANGE 2: Resize image before Gemini upload — avoids sending unnecessarily large files
+async function resizeImage(file: File, maxPx = 1024): Promise<File> {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+            if (scale >= 1) { resolve(file); return; }
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(
+                (blob) => resolve(new File([blob!], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })),
+                'image/jpeg', 0.85
+            );
+        };
+        img.src = url;
+    });
+}
+
+// CHANGE 1: Accept profileId prop alongside watchHistory
+export default function CameraCapture({
+    watchHistory,
+    profileId,
+    onHistoryUpdate,
+}: {
+    watchHistory: string[];
+    profileId: string;
+    onHistoryUpdate?: (h: string[]) => void;
+}) {
     const [image, setImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [loadingState, setLoadingState] = useState<'idle' | 'recognizing' | 'cross-referencing' | 'cast-lookup'>('idle');
     const [result, setResult] = useState<ActorResult | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
+    // CHANGE 7: Removed feedback state — was dead UI (never submitted anywhere)
     const [showCorrectionInput, setShowCorrectionInput] = useState(false);
     const [correctionName, setCorrectionName] = useState('');
 
@@ -69,13 +100,17 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
 
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const libraryInputRef = useRef<HTMLInputElement>(null);
+    // CHANGE 3: AbortController ref for cancellation and timeout
+    const abortRef = useRef<AbortController | null>(null);
 
     const resetAll = () => {
+        // CHANGE 3: Cancel any in-flight request on reset
+        abortRef.current?.abort();
         setPreviewUrl(null);
         setImage(null);
         setResult(null);
         setError(null);
-        setFeedback(null);
+        // CHANGE 7: Removed setFeedback(null)
         setShowCorrectionInput(false);
         setCorrectionName('');
         setActorNotFound(false);
@@ -96,18 +131,25 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
         const file = event.target.files?.[0];
         if (!file) return;
 
-        setImage(file);
-        setPreviewUrl(URL.createObjectURL(file));
+        // CHANGE 2: Resize before processing to keep uploads fast
+        const resized = await resizeImage(file);
+        setImage(resized);
+        setPreviewUrl(URL.createObjectURL(resized));
         setResult(null);
         setError(null);
-        setFeedback(null);
+        // CHANGE 7: Removed setFeedback(null)
         setShowCorrectionInput(false);
         setCorrectionName('');
 
-        await processImage(file);
+        await processImage(resized);
     };
 
+    // CHANGE 3: AbortController + 15-second timeout; CHANGE 1: sends profileId instead of watchHistory
     const processImage = async (file: File) => {
+        abortRef.current = new AbortController();
+        const { signal } = abortRef.current;
+        const timeoutId = setTimeout(() => abortRef.current?.abort(), 15000);
+
         try {
             setLoadingState('recognizing');
 
@@ -118,6 +160,7 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
             const recognitionRes = await fetch('/api/recognize', {
                 method: 'POST',
                 body: formData,
+                signal,
             });
 
             const recognitionData = await recognitionRes.json();
@@ -135,13 +178,14 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
 
             const actorName = recognitionData.actor.name;
 
-            // Step 2: Cross Reference
+            // Step 2: Cross Reference — CHANGE 1: profileId replaces watchHistory
             setLoadingState('cross-referencing');
 
             const crossRefRes = await fetch('/api/cross-reference', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actorName, watchHistory }),
+                body: JSON.stringify({ actorName, profileId }),
+                signal,
             });
 
             const crossRefData = await crossRefRes.json();
@@ -161,8 +205,14 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
             });
 
         } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred');
+            // CHANGE 3: Distinguish abort/timeout from other errors
+            if (err.name === 'AbortError') {
+                setError('Request timed out or was cancelled. Check your connection and try again.');
+            } else {
+                setError(err.message || 'An unexpected error occurred');
+            }
         } finally {
+            clearTimeout(timeoutId);
             setLoadingState('idle');
         }
     };
@@ -195,6 +245,7 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
         }
     };
 
+    // CHANGE 1: sends profileId instead of watchHistory; CHANGE 7: removed setFeedback(null)
     const lookupActor = async (actorName: string) => {
         setShowCorrectionInput(false);
         setCorrectionName('');
@@ -206,13 +257,12 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
         setCastMediaTitle('');
         setResult(null);
         setError(null);
-        setFeedback(null);
         try {
             setLoadingState('cross-referencing');
             const crossRefRes = await fetch('/api/cross-reference', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actorName, watchHistory }),
+                body: JSON.stringify({ actorName, profileId }),
             });
             const crossRefData = await crossRefRes.json();
             if (!crossRefRes.ok) throw new Error(crossRefData.error || 'Failed to cross reference');
@@ -247,12 +297,38 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                         </h1>
                     </div>
 
-                    {/* Stacked action rows */}
+                    {/* CHANGE 5: Stacked action rows — Upload first (primary), Camera second */}
                     <div className="flex flex-col gap-0">
-                        {/* Camera row */}
+
+                        {/* Upload row — CHANGE 5: promoted to primary; CHANGE 11: focus-visible ring */}
+                        <button
+                            onClick={() => libraryInputRef.current?.click()}
+                            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-all duration-150"
+                        >
+                            <div className="w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1 text-left">
+                                <p className="text-white font-semibold text-base">Upload Photo</p>
+                                {/* CHANGE 5: Updated description to emphasise screenshots */}
+                                <p className="text-zinc-500 text-sm">From your library or screenshots</p>
+                            </div>
+                            <svg className="w-5 h-5 text-zinc-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+
+                        {/* OR divider */}
+                        <div className="flex items-center gap-3 py-3 px-2">
+                            <div className="flex-1 h-px bg-zinc-800" />
+                            <span className="text-zinc-600 text-xs font-medium tracking-widest">OR</span>
+                            <div className="flex-1 h-px bg-zinc-800" />
+                        </div>
+
+                        {/* Camera row — CHANGE 5: demoted to secondary; CHANGE 11: focus-visible ring */}
                         <button
                             onClick={() => cameraInputRef.current?.click()}
-                            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-[0.98] outline-none transition-all duration-150"
+                            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-all duration-150"
                         >
                             <div className="w-12 h-12 rounded-xl bg-indigo-600/25 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
                                 <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -266,34 +342,11 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                             </div>
                             <svg className="w-5 h-5 text-zinc-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                         </button>
-
-                        {/* OR divider */}
-                        <div className="flex items-center gap-3 py-3 px-2">
-                            <div className="flex-1 h-px bg-zinc-800" />
-                            <span className="text-zinc-600 text-xs font-medium tracking-widest">OR</span>
-                            <div className="flex-1 h-px bg-zinc-800" />
-                        </div>
-
-                        {/* Library row */}
-                        <button
-                            onClick={() => libraryInputRef.current?.click()}
-                            className="w-full flex items-center gap-4 px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-[0.98] outline-none transition-all duration-150"
-                        >
-                            <div className="w-12 h-12 rounded-xl bg-emerald-600/25 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                                </svg>
-                            </div>
-                            <div className="flex-1 text-left">
-                                <p className="text-white font-semibold text-base">Upload Photo</p>
-                                <p className="text-zinc-500 text-sm">From your camera roll</p>
-                            </div>
-                            <svg className="w-5 h-5 text-zinc-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                        </button>
                     </div>
 
-                    <p className="text-center text-[11px] text-zinc-700 mt-6">
-                        <span className="text-zinc-600">Tip:</span> Screenshot your screen first, then tap Upload for best results.
+                    {/* CHANGE 10: tip text contrast — was text-[11px] text-zinc-700 */}
+                    <p className="text-center text-xs text-zinc-500 mt-6">
+                        <span className="text-zinc-500">Tip:</span> Screenshot your screen first, then tap Upload for best results.
                     </p>
                 </div>
             )}
@@ -303,7 +356,7 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
             {/* Library input — opens photo picker */}
             <input type="file" accept="image/*" className="hidden" ref={libraryInputRef} onChange={handleCapture} />
 
-            {/* Preview strip */}
+            {/* Preview strip — CHANGE 4: subtitle driven by loadingState */}
             {previewUrl && (
                 <div className="w-full flex items-center gap-3 px-1">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-zinc-700 flex-shrink-0">
@@ -312,14 +365,22 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-xs text-zinc-500 mb-0.5">Your capture</p>
-                        <p className="text-sm text-zinc-300 font-medium truncate">Analyzing scene…</p>
+                        {/* CHANGE 4: Was hardcoded "Analyzing scene…" */}
+                        <p className="text-sm text-zinc-300 font-medium truncate">
+                            {loadingState === 'recognizing' ? 'Identifying actor…'
+                                : loadingState === 'cross-referencing' ? 'Checking your history…'
+                                : result ? 'Match found'
+                                : 'Ready'}
+                        </p>
                     </div>
+                    {/* CHANGE 9: This "New scan" button at top of viewport is the primary reset entry point */}
                     <button onClick={resetAll} className="px-3 py-1.5 bg-zinc-800 text-xs font-medium text-zinc-300 rounded-full hover:bg-zinc-700 hover:text-white transition flex-shrink-0">
                         New scan
                     </button>
                 </div>
             )}
 
+            {/* CHANGE 3: Loading spinner with cancel button */}
             {loadingState !== 'idle' && (
                 <div className="w-full p-6 bg-zinc-900/80 rounded-2xl flex flex-col items-center justify-center border border-zinc-800">
                     <svg className="animate-spin h-10 w-10 text-indigo-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -329,6 +390,13 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                     <p className="text-white font-medium">
                         {loadingState === 'recognizing' ? 'Identifying actor...' : loadingState === 'cast-lookup' ? 'Looking up cast...' : 'Checking your watch history...'}
                     </p>
+                    {/* CHANGE 3: Cancel button */}
+                    <button
+                        onClick={() => { abortRef.current?.abort(); setLoadingState('idle'); }}
+                        className="mt-3 text-xs text-zinc-500 hover:text-zinc-300 transition underline underline-offset-2"
+                    >
+                        Cancel
+                    </button>
                 </div>
             )}
 
@@ -388,7 +456,8 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                                     <p className="text-zinc-500 text-xs">Browse the cast and pick who it is</p>
                                 </div>
                             </button>
-                            <button onClick={resetAll} className="text-xs text-zinc-600 hover:text-zinc-400 transition text-center mt-1">
+                            {/* CHANGE 10: was text-zinc-600 */}
+                            <button onClick={resetAll} className="text-xs text-zinc-500 hover:text-zinc-400 transition text-center mt-1">
                                 Start over
                             </button>
                         </div>
@@ -440,9 +509,11 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                         <div className="p-4 animate-in fade-in duration-200">
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-sm text-zinc-300 font-medium">Cast of <span className="text-white">{castMediaTitle}</span></p>
-                                <button onClick={() => { setCastResults(null); setHelperShowName(''); }} className="text-xs text-zinc-600 hover:text-zinc-400 transition">Change show</button>
+                                {/* CHANGE 10: was text-zinc-600 */}
+                                <button onClick={() => { setCastResults(null); setHelperShowName(''); }} className="text-xs text-zinc-500 hover:text-zinc-400 transition">Change show</button>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto">
+                            {/* CHANGE 8: Removed max-h-[50vh] overflow-y-auto — let page scroll handle it */}
+                            <div className="grid grid-cols-3 gap-2">
                                 {castResults.map((member) => (
                                     <button
                                         key={member.id}
@@ -494,10 +565,11 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                                             IMDb
                                         </a>
                                     )}
+                                    {/* CHANGE 6: Promoted "Wrong person?" to a visible bordered button */}
                                     {!showCorrectionInput ? (
                                         <button
                                             onClick={() => setShowCorrectionInput(true)}
-                                            className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors underline underline-offset-2"
+                                            className="text-zinc-400 hover:text-zinc-200 text-xs transition-colors border border-zinc-700 hover:border-zinc-500 rounded-lg px-2.5 py-1"
                                         >
                                             Wrong person?
                                         </button>
@@ -536,8 +608,16 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                     </div>
 
                     <div className="p-6">
+                        {/* CHANGE 13: Empty-history nudge — shown when no CSV uploaded yet */}
+                        {watchHistory.length === 0 && (
+                            <div className="mb-4 p-3 bg-zinc-800/50 border border-zinc-700/50 rounded-xl text-xs text-zinc-400">
+                                No watch history loaded — upload your Netflix CSV from the menu to see where you&apos;ve seen this actor before.
+                            </div>
+                        )}
+
+                        {/* CHANGE 8: Removed max-h-[55vh] overflow-y-auto from results — let page scroll handle it */}
                         {(result.matches.length > 0 || (result.fuzzyMatches && result.fuzzyMatches.length > 0)) ? (
-                            <div className="space-y-5 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-5">
                                 {result.matches.length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-3">You&apos;ve seen them in:</h3>
@@ -566,7 +646,8 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                                 {result.fuzzyMatches && result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-1">Possible matches:</h3>
-                                        <p className="text-zinc-600 text-xs mb-3">These aren&apos;t exact matches but may be related to titles in your history</p>
+                                        {/* CHANGE 10: was text-zinc-600 */}
+                                        <p className="text-zinc-500 text-xs mb-3">These aren&apos;t exact matches but may be related to titles in your history</p>
                                         <div className="space-y-2">
                                             {result.fuzzyMatches.filter(m => !dismissedFuzzy.has(m.title)).map((item, idx) => (
                                                 <div key={`fuzzy-${item.id}-${idx}`} className="p-3 bg-zinc-800/20 rounded-xl border border-zinc-800/30 transition opacity-80">
@@ -579,7 +660,8 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                                                         )}
                                                         <div className="flex-1 py-1">
                                                             <h4 className="font-medium text-zinc-400 text-base leading-tight mb-0.5">{item.title}</h4>
-                                                            <p className="text-zinc-600 text-sm mb-0.5">{item.releaseYear}</p>
+                                                            {/* CHANGE 10: was text-zinc-600 */}
+                                                            <p className="text-zinc-500 text-sm mb-0.5">{item.releaseYear}</p>
                                                             {item.character && (
                                                                 <p className="text-sm text-zinc-500">as {item.character}</p>
                                                             )}
@@ -588,11 +670,12 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                                                     {item.matchedFrom && (
                                                         <p className="text-amber-400/70 text-xs mt-2 px-1">Suggested because you watched &ldquo;{item.matchedFrom}&rdquo;</p>
                                                     )}
+                                                    {/* CHANGE 12: Updated dismiss copy */}
                                                     <button
                                                         onClick={() => setDismissedFuzzy(prev => new Set([...prev, item.title]))}
                                                         className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition underline underline-offset-2"
                                                     >
-                                                        Not the same — I haven&apos;t seen this
+                                                        Dismiss — not relevant
                                                     </button>
                                                 </div>
                                             ))}
@@ -696,28 +779,9 @@ export default function CameraCapture({ watchHistory, onHistoryUpdate }: { watch
                             </div>
                         )}
 
-                        {/* Feedback Section */}
-                        <div className="mt-6 pt-6 border-t border-zinc-800/80 flex flex-col items-center">
-                            <p className="text-zinc-400 text-sm mb-3">Was this identification correct?</p>
-                            <div className="flex gap-4">
-                                <button 
-                                    onClick={() => setFeedback('up')}
-                                    className={`p-3 rounded-full transition-all ${feedback === 'up' ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/50' : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`}
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
-                                </button>
-                                <button 
-                                    onClick={() => setFeedback('down')}
-                                    className={`p-3 rounded-full transition-all ${feedback === 'down' ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/50' : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700 hover:text-white'}`}
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"></path></svg>
-                                </button>
-                            </div>
-                            {feedback && (
-                                <p className="text-xs text-zinc-500 mt-2">Thanks for the feedback!</p>
-                            )}
-                        </div>
+                        {/* CHANGE 7: Removed feedback thumbs section — was dead UI (local state, never submitted) */}
 
+                        {/* CHANGE 9: Secondary reset — also accessible from preview strip "New scan" at top */}
                         <button
                             onClick={resetAll}
                             className="w-full mt-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg transition-transform active:scale-95"

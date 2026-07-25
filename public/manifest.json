@@ -1,6 +1,6 @@
 {
-  "name": "Where Do I Know Her From?",
-  "short_name": "Who's That?",
+  "name": "What Do I Know Them From?",
+  "short_name": "Know Them From",
   "description": "Take a picture of an actor and find out where you've seen them in your watch history.",
   "start_url": "/",
   "display": "standalone",

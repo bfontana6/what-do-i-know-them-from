@@ -1,24 +1,33 @@
 import { NextResponse } from 'next/server';
 import { TMDB } from 'tmdb-ts';
+import { supabase } from '@/lib/supabase';
 
-// Initialize TMDB Client
-// TODO(tech-debt): client is instantiated at module load, so `next build` needs
-// TMDB_ACCESS_TOKEN set even when not hitting this route. Move to lazy init.
-const tmdb = new TMDB(process.env.TMDB_ACCESS_TOKEN || '');
+let _tmdb: TMDB | null = null;
+const getTMDB = () => {
+  if (!_tmdb) _tmdb = new TMDB(process.env.TMDB_ACCESS_TOKEN!);
+  return _tmdb;
+};
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { actorName, watchHistory } = body;
+        const { actorName, profileId } = body;
 
-        // watchHistory should be an array of strings (e.g., ["The Office", "Stranger Things"])
+        if (!actorName || typeof actorName !== 'string') {
+            return NextResponse.json({ error: 'actorName is required' }, { status: 400 });
+        }
 
-        if (!actorName) {
-            return NextResponse.json({ error: 'Actor name is required' }, { status: 400 });
+        let watchHistory: string[] = [];
+        if (profileId) {
+            const { data: historyRows } = await supabase
+                .from('watch_history')
+                .select('title')
+                .eq('profile_id', profileId);
+            watchHistory = historyRows?.map(r => r.title) ?? [];
         }
 
         // 1. Search for the actor by name
-        const searchResult = await tmdb.search.people({ query: actorName });
+        const searchResult = await getTMDB().search.people({ query: actorName });
 
         if (!searchResult.results || searchResult.results.length === 0) {
             return NextResponse.json({ error: 'Actor not found in TMDB' }, { status: 404 });
@@ -30,8 +39,8 @@ export async function POST(request: Request) {
 
         // 2. Fetch credits and person details (for imdb_id) in parallel
         const [credits, personDetails] = await Promise.all([
-            tmdb.people.combinedCredits(personId),
-            tmdb.people.details(personId),
+            getTMDB().people.combinedCredits(personId),
+            getTMDB().people.details(personId),
         ]);
 
         // 3. Cross-reference with watch history
@@ -110,12 +119,12 @@ export async function POST(request: Request) {
         // Keep legacy `matches` as exact-only for backwards compatibility
         const uniqueMatches = uniqueExactMatches;
 
-        // Also prepare top ~10 filmography items to show if there are no/few matches, sorting by popularity
+        // Also prepare top 5 filmography items to show if there are no/few matches, sorting by popularity
         const allCredits = credits.cast || [];
         const topFilmography = allCredits
             .filter(c => c.poster_path) // only items with posters look good
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-            .slice(0, 10)
+            .slice(0, 5)
             .map(credit => {
                 const isMovie = (credit as any).media_type === 'movie';
                 const title = isMovie ? (credit as any).title : (credit as any).name;

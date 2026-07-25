@@ -1,17 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 const inter = Inter({ subsets: ["latin"], weight: ['400', '500', '600', '700'] });
 
 export const metadata: Metadata = {
-  title: "Where Do I Know Her From?",
+  title: "What Do I Know Them From?",
   description: "Take a picture of an actor and find out where you've seen them in your watch history.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Who's That?",
+    title: "What Do I Know Them From?",
   },
   icons: {
     apple: [
@@ -28,6 +29,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <body className={`${inter.className} bg-black text-white antialiased min-h-screen flex flex-col selection:bg-indigo-500/30`}>
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>

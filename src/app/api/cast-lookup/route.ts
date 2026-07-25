@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { TMDB } from 'tmdb-ts';
 
-// TODO(tech-debt): client is instantiated at module load, so `next build` needs
-// TMDB_ACCESS_TOKEN set even when not hitting this route. Move to lazy init.
-const tmdb = new TMDB(process.env.TMDB_ACCESS_TOKEN || '');
+let _tmdb: TMDB | null = null;
+const getTMDB = () => {
+  if (!_tmdb) _tmdb = new TMDB(process.env.TMDB_ACCESS_TOKEN!);
+  return _tmdb;
+};
 
 export async function POST(request: Request) {
     try {
@@ -16,8 +18,8 @@ export async function POST(request: Request) {
 
         // Search TV and movie in parallel
         const [tvResults, movieResults] = await Promise.all([
-            tmdb.search.tvShows({ query: showName }),
-            tmdb.search.movies({ query: showName }),
+            getTMDB().search.tvShows({ query: showName }),
+            getTMDB().search.movies({ query: showName }),
         ]);
 
         // Pick the best result: highest popularity across both types
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
         let cast: Array<{ id: number; name: string; character: string; profilePath: string | null }> = [];
 
         if (mediaType === 'tv') {
-            const credits = await tmdb.tvShows.credits(mediaId);
+            const credits = await getTMDB().tvShows.credits(mediaId);
             cast = (credits.cast || []).slice(0, 20).map((m: any) => ({
                 id: m.id,
                 name: m.name,
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
                 profilePath: m.profile_path ? `https://image.tmdb.org/t/p/w185${m.profile_path}` : null,
             }));
         } else {
-            const credits = await tmdb.movies.credits(mediaId);
+            const credits = await getTMDB().movies.credits(mediaId);
             cast = (credits.cast || []).slice(0, 20).map((m: any) => ({
                 id: m.id,
                 name: m.name,

@@ -2,17 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
-
-/**
- * Netflix CSV episode entries look like "Show Name: Season 4: Chapter Nine".
- * This extracts the base show name so it can match against TMDB credits.
- */
-function extractTitles(rawTitle: string): string[] {
-    const titles: string[] = [rawTitle];
-    const match = rawTitle.match(/^(.+?):\s*Season\s+\d/i);
-    if (match) titles.push(match[1].trim());
-    return titles;
-}
+import { extractTitles } from '@/lib/titles';
 
 interface HamburgerMenuProps {
     watchHistory: string[] | null;
@@ -28,6 +18,8 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
     const [loading, setLoading] = useState(false);
     const [showAddInSheet, setShowAddInSheet] = useState(false);
     const [newTitleInSheet, setNewTitleInSheet] = useState('');
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const [confirmingClear, setConfirmingClear] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // For the viewer, show only "clean" titles — not raw Netflix episode strings
@@ -61,6 +53,7 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
         const file = event.target.files?.[0];
         if (!file) return;
 
+        setUploadError(null);
         setLoading(true);
 
         Papa.parse(file, {
@@ -80,17 +73,17 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
                         onHistoryUpdate(combinedTitles);
                         setIsOpen(false);
                     } else {
-                        alert("No titles found in the uploaded CSV.");
+                        setUploadError("No titles found in the uploaded CSV.");
                     }
                 } catch (err) {
-                    alert("Failed to parse the CSV file.");
+                    setUploadError("Failed to parse the CSV file.");
                 } finally {
                     setLoading(false);
                     if (fileInputRef.current) fileInputRef.current.value = '';
                 }
             },
             error: (err) => {
-                alert(err.message);
+                setUploadError(err.message);
                 setLoading(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';
             }
@@ -125,19 +118,12 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
         setIsOpen(false);
     };
 
-    const handleClearHistory = () => {
-        if (window.confirm("Are you sure you want to clear your uploaded watch history?")) {
-            onHistoryUpdate(null);
-            setIsOpen(false);
-        }
-    };
-
     return (
         <div className="relative z-50">
             {/* Hamburger Button */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="p-2 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-lg backdrop-blur-md border border-zinc-700 transition shadow-lg"
+                onClick={() => { setIsOpen(!isOpen); setUploadError(null); }}
+                className="p-3 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-lg backdrop-blur-md border border-zinc-700 transition shadow-lg"
                 aria-label="Menu"
             >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -166,6 +152,9 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                     {loading ? 'Uploading...' : 'Upload CSV List'}
                                 </button>
+                                {uploadError && (
+                                    <p className="px-4 py-2 text-xs text-red-400">{uploadError}</p>
+                                )}
                                 
                                 <button
                                     onClick={() => setShowSingleTitleInput(true)}
@@ -195,13 +184,23 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                             Export History CSV
                                         </button>
-                                        <button
-                                            onClick={handleClearHistory}
-                                            className="w-full text-left px-4 py-3 text-sm font-medium text-red-400 hover:bg-zinc-800 rounded-lg transition flex items-center gap-2"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                            Clear All History
-                                        </button>
+                                        {confirmingClear ? (
+                                            <div className="px-4 py-3 animate-in fade-in duration-150">
+                                                <p className="text-xs text-zinc-400 mb-2">Clear all watch history?</p>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => setConfirmingClear(false)} className="flex-1 py-1.5 bg-zinc-800 text-zinc-400 text-xs rounded-lg">Cancel</button>
+                                                    <button onClick={() => { onHistoryUpdate(null); setIsOpen(false); setConfirmingClear(false); }} className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg">Clear</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setConfirmingClear(true)}
+                                                className="w-full text-left px-4 py-3 text-sm font-medium text-red-400 hover:bg-zinc-800 rounded-lg transition flex items-center gap-2"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                Clear All History
+                                            </button>
+                                        )}
                                     </>
                                 )}
                             </>
@@ -257,11 +256,6 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
                         style={{ maxHeight: '85vh' }}
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* Handle */}
-                        <div className="flex justify-center pt-3 pb-1">
-                            <div className="w-10 h-1 bg-zinc-700 rounded-full" />
-                        </div>
-
                         {/* Header */}
                         <div className="px-5 py-3 flex items-center justify-between border-b border-zinc-800/60">
                             <div>
@@ -335,10 +329,10 @@ export default function HamburgerMenu({ watchHistory, onHistoryUpdate }: Hamburg
                                             <span className="text-zinc-300 text-sm truncate flex-1 pr-3">{title}</span>
                                             <button
                                                 onClick={() => removeTitle(title)}
-                                                className="flex-shrink-0 p-1.5 text-zinc-700 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition"
+                                                className="flex-shrink-0 p-2.5 text-zinc-700 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition"
                                                 aria-label={`Remove ${title}`}
                                             >
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                             </button>
                                         </li>
                                     ))}

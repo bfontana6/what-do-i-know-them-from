@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 
-// Initialize the Google Gen AI client
-// Provide the API key through the GEMINI_API_KEY environment variable
-// TODO(tech-debt): client is instantiated at module load, so `next build` fails if
-// GEMINI_API_KEY is unset even when the route isn't being hit. Move to lazy init.
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let _ai: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!_ai) _ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  return _ai;
+};
 
 export async function POST(request: Request) {
     try {
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
         }
         console.log(`Processing image with mimeType: ${mimeType}`);
 
-        // Call Gemini 1.5 Flash (fast and cost-effective for vision tasks)
-        const response = await ai.models.generateContent({
+        // Call gemini-2.5-flash (fast and cost-effective for vision tasks)
+        const response = await getAI().models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [
                 {
@@ -59,13 +59,12 @@ export async function POST(request: Request) {
             success: true,
             actor: {
                 name: recognizedName,
-                confidence: 99.0, // We simulate high confidence since the LLM provided a definitive answer
             }
         });
 
     } catch (error: any) {
         console.error('Error recognizing image with Gemini:', error);
-        
+
         let errorMessage = 'Failed to process image';
         let statusCode = 500;
 
