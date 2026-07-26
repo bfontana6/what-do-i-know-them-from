@@ -26,14 +26,27 @@ export async function POST(request: Request) {
         }
         console.log(`Processing image with mimeType: ${mimeType}`);
 
-        // Call gemini-2.5-flash (fast and cost-effective for vision tasks)
+        // Use gemini-2.5-pro for significantly better actor recognition accuracy
         const response = await getAI().models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-pro',
             contents: [
                 {
                     role: 'user',
                     parts: [
-                        { text: "Identify the single most prominent actor or actress in this image. Reply with ONLY their full name. If you cannot identify anyone, reply exactly with 'UNKNOWN'." },
+                        {
+                            text: `You are looking at a photo of a television screen or a screenshot from a TV show, movie, or streaming service.
+
+Your task: identify the actor or actress shown by their REAL NAME — not the character they are playing.
+
+Rules:
+- Return the real person's name (e.g. "Bryan Cranston", not "Walter White")
+- Focus on the most prominent/clearly visible face
+- If the image shows a TV screen at an angle or with glare, do your best with what is visible
+- If you are confident in the identification, return only their full name
+- If you cannot identify the person, return exactly: UNKNOWN
+
+Reply with only the actor's full real name or UNKNOWN. Nothing else.`
+                        },
                         {
                             inlineData: {
                                 data: base64Image,
@@ -44,7 +57,8 @@ export async function POST(request: Request) {
                 }
             ],
             config: {
-                temperature: 0.1, // Low temperature for factual identification
+                temperature: 0,
+                thinkingConfig: { thinkingBudget: 5000 },
             }
         });
 
