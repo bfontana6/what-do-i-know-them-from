@@ -218,7 +218,7 @@ export default function Home() {
         </div>
       )}
       <main
-        className="flex-1 flex flex-col max-w-lg w-full mx-auto px-4 min-h-screen"
+        className="flex-1 flex flex-col max-w-lg w-full mx-auto px-4 min-h-screen overflow-x-hidden"
         style={{
           background: 'radial-gradient(ellipse 100% 40% at 50% 0%, rgba(79,70,229,0.06) 0%, transparent 100%)',
         }}

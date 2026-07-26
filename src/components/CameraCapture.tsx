@@ -578,60 +578,61 @@ export default function CameraCapture({
                                             IMDb
                                         </a>
                                     )}
-                                    {!showCorrectionInput ? (
+                                    {!showCorrectionInput && (
                                         <button
                                             onClick={() => setShowCorrectionInput(true)}
                                             className="text-[#808080] hover:text-[#a0a0a0] text-xs transition-colors border border-[#262626] hover:border-zinc-500 rounded-lg px-2.5 py-1"
                                         >
                                             Wrong person?
                                         </button>
-                                    ) : (
-                                        <div className="mt-3 w-full space-y-3 animate-in fade-in duration-150">
-                                            {/* Try again — re-run full recognition */}
-                                            <button
-                                                type="button"
-                                                onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); if (image) processImage(image); }}
-                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#1c1c1c] hover:bg-[#262626] border border-[#262626] text-[#a0a0a0] hover:text-[#f0f0f0] text-sm rounded-xl transition"
-                                            >
-                                                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                                </svg>
-                                                Try recognition again
-                                            </button>
-
-                                            {/* Manual name entry */}
-                                            <form
-                                                onSubmit={(e) => { e.preventDefault(); if (correctionName.trim()) { lookupActor(correctionName.trim()); setShowCorrectionInput(false); setCorrectionName(''); } }}
-                                                className="space-y-2"
-                                            >
-                                                <p className="text-[11px] text-[#808080] uppercase tracking-[0.12em]">Or enter their name</p>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={correctionName}
-                                                        onChange={(e) => setCorrectionName(e.target.value)}
-                                                        placeholder="Actor name…"
-                                                        className="flex-1 bg-[#1c1c1c] border border-[#262626] text-[#f0f0f0] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4f46e5] placeholder-[#4a4a4a]"
-                                                    />
-                                                    <button
-                                                        type="submit"
-                                                        disabled={!correctionName.trim()}
-                                                        className="px-3 py-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-medium rounded-xl transition disabled:opacity-40"
-                                                    >
-                                                        Look up
-                                                    </button>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); }}
-                                                    className="w-full py-1.5 text-[#808080] hover:text-[#a0a0a0] text-xs transition text-center"
-                                                >
-                                                    I don&apos;t know — cancel
-                                                </button>
-                                            </form>
-                                        </div>
                                     )}
                                 </div>
+                                {/* Correction panel — sibling block so w-full is never inside a flex gap context */}
+                                {showCorrectionInput && (
+                                    <div className="mt-3 w-full space-y-3 animate-in fade-in duration-150">
+                                        {/* Try again — re-run full recognition */}
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); if (image) processImage(image); }}
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#1c1c1c] hover:bg-[#262626] border border-[#262626] text-[#a0a0a0] hover:text-[#f0f0f0] text-sm rounded-xl transition"
+                                        >
+                                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                            </svg>
+                                            Try recognition again
+                                        </button>
+                                        {/* Manual name entry */}
+                                        <form
+                                            onSubmit={(e) => { e.preventDefault(); if (correctionName.trim()) { lookupActor(correctionName.trim()); setShowCorrectionInput(false); setCorrectionName(''); } }}
+                                            className="space-y-2"
+                                        >
+                                            <p className="text-[11px] text-[#808080] uppercase tracking-[0.12em]">Or enter their name</p>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={correctionName}
+                                                    onChange={(e) => setCorrectionName(e.target.value)}
+                                                    placeholder="Actor name…"
+                                                    className="flex-1 min-w-0 bg-[#1c1c1c] border border-[#262626] text-[#f0f0f0] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4f46e5] placeholder-[#4a4a4a]"
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    disabled={!correctionName.trim()}
+                                                    className="flex-shrink-0 px-3 py-2 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-medium rounded-xl transition disabled:opacity-40"
+                                                >
+                                                    Look up
+                                                </button>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowCorrectionInput(false); setCorrectionName(''); }}
+                                                className="w-full py-1.5 text-[#808080] hover:text-[#a0a0a0] text-xs transition text-center"
+                                            >
+                                                I don&apos;t know — cancel
+                                            </button>
+                                        </form>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -722,7 +723,7 @@ export default function CameraCapture({
                         {discoverTitles.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-zinc-800">
                                 <h4 className="text-[11px] font-semibold text-[#808080] uppercase tracking-[0.12em] mb-3">
-                                    Also known for
+                                    Their other work
                                 </h4>
                                 <div className="space-y-2">
                                     {discoverTitles.map((title, i) => (
