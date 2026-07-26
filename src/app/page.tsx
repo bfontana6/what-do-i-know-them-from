@@ -6,6 +6,27 @@ import CameraCapture from '@/components/CameraCapture';
 import HistoryUploader from '@/components/HistoryUploader';
 import HamburgerMenu from '@/components/HamburgerMenu';
 
+const historyKey = (id: string) => `watchHistory_${id}`;
+
+function loadCachedHistory(id: string): string[] {
+  try {
+    const raw = localStorage.getItem(historyKey(id));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryCache(id: string, history: string[]) {
+  try {
+    if (history.length > 0) {
+      localStorage.setItem(historyKey(id), JSON.stringify(history));
+    } else {
+      localStorage.removeItem(historyKey(id));
+    }
+  } catch {}
+}
+
 export default function Home() {
   const [watchHistory, setWatchHistory] = useState<string[] | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
@@ -18,16 +39,26 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const storedProfileId = localStorage.getItem('profileId');
-    if (storedProfileId) {
-      loadProfile(storedProfileId);
+    const storedId = localStorage.getItem('profileId');
+    const storedName = localStorage.getItem('profileName');
+
+    if (storedId) {
+      // Immediately show cached data — no blank screen while Supabase loads
+      if (storedName) {
+        setProfileId(storedId);
+        setProfileName(storedName);
+      }
+      const cached = loadCachedHistory(storedId);
+      if (cached.length > 0) setWatchHistory(cached);
+
+      loadProfile(storedId, cached);
     } else {
       setWatchHistory([]);
       setLoading(false);
     }
   }, []);
 
-  const loadProfile = async (id: string) => {
+  const loadProfile = async (id: string, cachedHistory: string[] = []) => {
     try {
       const [profileRes, historyRes] = await Promise.all([
         supabase.from('profiles').select('name').eq('id', id).single(),
@@ -35,17 +66,20 @@ export default function Home() {
       ]);
 
       if (profileRes.error) {
-        // PGRST116 = PostgREST "no rows returned" — profile genuinely deleted
-        // Every other code (auth, schema, network) is a transient failure — keep localStorage
         if (profileRes.error.code === 'PGRST116') {
+          // Profile genuinely deleted — clear everything
           localStorage.removeItem('profileId');
           localStorage.removeItem('profileName');
-        } else {
-          // Use cached name so user still gets into the app
-          const cachedName = localStorage.getItem('profileName');
-          setProfileId(id);
-          setProfileName(cachedName || 'You');
+          localStorage.removeItem(historyKey(id));
+          setProfileId(null);
+          setProfileName(null);
           setWatchHistory([]);
+        } else {
+          // Transient error — keep what's cached
+          const name = localStorage.getItem('profileName');
+          setProfileId(id);
+          setProfileName(name || 'You');
+          setWatchHistory(cachedHistory.length > 0 ? cachedHistory : []);
         }
         setLoading(false);
         return;
@@ -54,6 +88,7 @@ export default function Home() {
       if (!profileRes.data) {
         localStorage.removeItem('profileId');
         localStorage.removeItem('profileName');
+        setWatchHistory([]);
         setLoading(false);
         return;
       }
@@ -61,14 +96,22 @@ export default function Home() {
       setProfileId(id);
       setProfileName(profileRes.data.name);
       localStorage.setItem('profileName', profileRes.data.name);
-      setWatchHistory(historyRes.data ? historyRes.data.map(r => r.title) : []);
+
+      // Trust Supabase when it returns rows; fall back to cache when it returns empty
+      // (empty result can mean RLS is blocking the query, not that history is gone)
+      const supabaseHistory = historyRes.data?.map(r => r.title) ?? [];
+      const finalHistory = supabaseHistory.length > 0 ? supabaseHistory : cachedHistory;
+
+      setWatchHistory(finalHistory);
+      if (supabaseHistory.length > 0) {
+        saveHistoryCache(id, supabaseHistory);
+      }
     } catch (e) {
       console.error('Failed to load profile', e);
-      // Network totally unreachable — use whatever is cached
-      const cachedName = localStorage.getItem('profileName');
+      const name = localStorage.getItem('profileName');
       setProfileId(id);
-      setProfileName(cachedName || 'You');
-      setWatchHistory([]);
+      setProfileName(name || 'You');
+      setWatchHistory(cachedHistory.length > 0 ? cachedHistory : []);
     } finally {
       setLoading(false);
     }
@@ -88,6 +131,8 @@ export default function Home() {
     const newProfileId = profile.id;
     localStorage.setItem('profileId', newProfileId);
     localStorage.setItem('profileName', name);
+    saveHistoryCache(newProfileId, titles);
+
     setProfileId(newProfileId);
     setProfileName(name);
     setShowSetup(false);
@@ -106,11 +151,18 @@ export default function Home() {
   const handleHistoryUpdate = useCallback(async (newHistory: string[] | null) => {
     setWatchHistory(newHistory);
 
-    if (!profileId) return;
+    const currentId = profileId || localStorage.getItem('profileId');
+
+    // Always persist to localStorage immediately so refreshes never lose data
+    if (currentId) {
+      saveHistoryCache(currentId, newHistory || []);
+    }
+
+    if (!currentId) return;
 
     try {
       if (!newHistory || newHistory.length === 0) {
-        await supabase.from('watch_history').delete().eq('profile_id', profileId);
+        await supabase.from('watch_history').delete().eq('profile_id', currentId);
         setHistoryError(null);
         return;
       }
@@ -118,19 +170,19 @@ export default function Home() {
       const { data: existing } = await supabase
         .from('watch_history')
         .select('title')
-        .eq('profile_id', profileId);
+        .eq('profile_id', currentId);
 
       const existingTitles = new Set((existing || []).map(r => r.title));
       const newTitles = new Set(newHistory);
 
       const toDelete = [...existingTitles].filter(t => !newTitles.has(t));
       if (toDelete.length > 0) {
-        await supabase.from('watch_history').delete().eq('profile_id', profileId).in('title', toDelete);
+        await supabase.from('watch_history').delete().eq('profile_id', currentId).in('title', toDelete);
       }
 
       const toInsert = [...newTitles].filter(t => !existingTitles.has(t));
       if (toInsert.length > 0) {
-        const rows = toInsert.map(title => ({ profile_id: profileId, title }));
+        const rows = toInsert.map(title => ({ profile_id: currentId, title }));
         for (let i = 0; i < rows.length; i += 500) {
           const chunk = rows.slice(i, i + 500);
           await supabase.from('watch_history').upsert(chunk, { onConflict: 'profile_id,title' });
@@ -139,7 +191,7 @@ export default function Home() {
       setHistoryError(null);
     } catch (e) {
       console.error('Failed to sync history', e);
-      setHistoryError('Failed to save changes. Check your connection.');
+      setHistoryError('Saved locally — will sync when connection returns.');
     }
   }, [profileId]);
 
@@ -149,8 +201,8 @@ export default function Home() {
         <div className="flex-1 flex flex-col">
           <header className="py-5 min-h-[60px]" />
           <div className="flex-1 flex flex-col justify-center items-center gap-4 pb-6">
-            <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-            <p className="text-zinc-600 text-sm">Loading…</p>
+            <div className="w-8 h-8 rounded-full border-2 border-[#4f46e5] border-t-transparent animate-spin" />
+            <p className="text-[#808080] text-sm">Loading…</p>
           </div>
         </div>
       </main>
@@ -160,9 +212,9 @@ export default function Home() {
   return (
     <>
       {loadError && (
-        <div className="fixed top-4 left-4 right-4 z-50 p-3 bg-zinc-900 border border-zinc-700 rounded-xl flex items-center justify-between shadow-xl">
-          <p className="text-zinc-300 text-sm">{loadError}</p>
-          <button onClick={() => setLoadError(null)} className="text-zinc-500 hover:text-white ml-3 text-lg leading-none">✕</button>
+        <div className="fixed top-4 left-4 right-4 z-50 p-3 bg-[#141414] border border-[#262626] rounded-xl flex items-center justify-between shadow-xl">
+          <p className="text-[#a0a0a0] text-sm">{loadError}</p>
+          <button onClick={() => setLoadError(null)} className="text-[#808080] hover:text-[#f0f0f0] ml-3 text-lg leading-none">✕</button>
         </div>
       )}
       <main
